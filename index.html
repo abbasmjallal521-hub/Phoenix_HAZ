@@ -61,6 +61,13 @@ html[dir="rtl"] .arrow{transform:scaleX(-1)}
 .social svg{width:20px;height:20px;fill:currentColor}
 .disc{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.7;max-width:46ch;opacity:.8;margin:0}
 .sign{font-family:var(--f-display);font-size:11px;letter-spacing:.3em;color:var(--gold);text-transform:uppercase}
+.contact{width:100%;display:flex;flex-direction:column;gap:10px;align-items:center}
+.contact h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--gold)}
+.contact-row{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.contact a{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 10px;border-radius:12px;border:1px solid var(--line);color:var(--text);text-decoration:none;font:600 14px var(--f-en);direction:ltr;transition:background .15s,border-color .15s;min-width:0}
+.contact a:hover{background:rgba(242,193,78,.08);border-color:var(--gold)}
+.contact a svg{width:18px;height:18px;fill:var(--gold);flex:none}
+.contact a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.crest{animation:none}#embers{display:none}}
 </style>
 
@@ -84,6 +91,11 @@ html[dir="rtl"] .arrow{transform:scaleX(-1)}
   <div class="markets"><span>XAUUSD</span><span>XAGUSD</span><span>US30</span><span>NAS100</span><span>OIL</span></div>
 
   <nav class="links" id="links"></nav>
+
+  <section class="contact">
+    <h2 data-ar="للاستفسار والتواصل" data-en="CONTACT US"></h2>
+    <div class="contact-row" id="contact"></div>
+  </section>
 
   <div class="social" id="social"></div>
 
@@ -112,6 +124,7 @@ const SOCIAL = [
   {icon:"ig", url:"", label:"Instagram"},
   {icon:"tg", url:"https://t.me/phoenixhttrading", label:"Telegram"}
 ];
+const CONTACTS = ["Abbas_MJallal","hsnTrf"];
 /* ========================================================== */
 const ICONS = {
   tg:'<path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13 1.4 11.5c-1-.3-1-1 .2-1.5L20.6 2.7c.9-.3 1.6.2 1.3 1.6Z"/>',
@@ -140,6 +153,11 @@ function render(){
   document.getElementById("social").innerHTML = SOCIAL.filter(s=>s.url).map(s=>
     `<a href="${s.url}" target="_blank" rel="noopener" aria-label="${s.label}"><svg viewBox="0 0 24 24">${ICONS[s.icon]}</svg></a>`).join("");
 }
+function renderContacts(){
+  document.getElementById("contact").innerHTML = CONTACTS.map(u=>
+    `<a href="https://t.me/${u}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24">${ICONS.tg}</svg><span>@${u}</span></a>`).join("");
+}
+renderContacts();
 function setLang(l){ lang=l; try{localStorage.setItem("phx-lang",l);}catch(e){} render(); }
 document.getElementById("btn-ar").onclick=()=>setLang("ar");
 document.getElementById("btn-en").onclick=()=>setLang("en");
