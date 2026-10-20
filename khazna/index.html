@@ -169,14 +169,7 @@ body.has-bg .lockbox p{color:var(--ink)}
         <button class="ib" data-act="settings" aria-label="الإعدادات" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
       </div>
     </div>
-    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="دوّر: شركة، رقم حساب، اسم…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="بحث"></div>
-    <div class="seg" role="group" id="kindSeg">
-      <button type="button" data-act="kind" data-k="all" aria-pressed="true">الكل</button>
-      <button type="button" data-act="kind" data-k="trading" aria-pressed="false">تداول</button>
-      <button type="button" data-act="kind" data-k="bot" aria-pressed="false">بوتات</button>
-      <button type="button" data-act="kind" data-k="wallet" aria-pressed="false">محافظ</button>
-      <button type="button" data-act="kind" data-k="other" aria-pressed="false">تانية</button>
-    </div>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="دوّر على شركة أو اسم…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="بحث"></div>
   </div></header>
   <main id="view" class="wrap"><div class="loading">عم يحمّل…</div></main>
   <button class="fab" data-act="new" aria-label="زيد حساب" type="button"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -345,26 +338,19 @@ async function lockSubmit(f){
 }
 
 /* ---------- list ---------- */
-const title=a=>a.name||a.company||'بلا اسم';
-const sub=a=>[a.login,a.kind==='trading'?a.server:'',a.kind==='wallet'?a.network:'',a.owner?'باسم '+a.owner:''].filter(Boolean).join(' · ');
-const hasBot=a=>!!(a.bot&&a.bot.on);
-function matches(a,q){if(!q)return true;q=norm(q);const b=a.bot||{};if((q==='بوت'||q==='bot')&&hasBot(a))return true;return [a.name,a.company,a.login,a.owner,a.server,a.note,a.currency,a.network,a.platform,b.name,b.pairs,b.how,a.ib&&a.ib.name,a.ib&&a.ib.code,a.terms&&a.terms.type].some(x=>norm(x).includes(q))}
+const COMPANIES=[...new Set(CAT.trading.concat(CAT.wallet,CAT.other))];
+const nameOf=a=>a.login||a.name||'';
+function matches(a,q){if(!q)return true;q=norm(q);return [a.company,a.login,a.name].some(x=>norm(x).includes(q))}
 function row(a){
-  const tags=(a.currency?'<span class="chip n">'+esc(a.currency)+'</span>':'')+(a.kind==='trading'&&a.acctType&&a.acctType!=='حقيقي'?'<span class="chip">'+esc(a.acctType)+'</span>':'')+(a.ib&&a.ib.on?'<span class="chip ib">IB</span>':'')+(hasBot(a)?'<span class="chip '+(a.bot.status==='موقّف'?'bot-off':'bot-on')+'">🤖 '+esc(a.bot.status||'بوت')+'</span>':'');
-  return '<button class="li" data-act="open" data-id="'+esc(a.id)+'"><span class="logo k-'+a.kind+'">'+firstChar(a)+'</span><span class="main"><span class="t">'+esc(title(a))+(a.name&&a.company?' <span class="note">'+esc(a.company)+'</span>':'')+'</span><span class="s">'+esc(sub(a)||KIND[a.kind])+'</span></span><span class="tags">'+tags+'</span></button>';
+  return '<button class="li" data-act="open" data-id="'+esc(a.id)+'"><span class="logo k-trading">'+firstChar(a)+'</span><span class="main"><span class="t">'+esc(a.company||'بلا شركة')+'</span><span class="s n" style="text-align:right">'+esc(nameOf(a))+'</span></span>'+(a.password?'<span class="chip">🔑</span>':'')+'</button>';
 }
 function render(){
   const v=$('#view');renderLock();
-  document.querySelectorAll('#kindSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===ui.kind));
   if(!ready){v.innerHTML='<div class="loading">عم يحمّل…</div>';return}
   if(!dek){v.innerHTML='';return}
-  if(!S.accounts.length){v.innerHTML='<div class="card empty"><strong>خزنتك فاضية</strong><div>زيد حساباتك كلها بمحل واحد: حسابات التداول، المحافظ، وحسابات متل TradingView.</div><button class="btn" data-act="new">زيد أول حساب</button></div>';return}
-  const list=S.accounts.filter(a=>(ui.kind==='all'||(ui.kind==='bot'?hasBot(a):a.kind===ui.kind))&&matches(a,ui.q));
-  if(!list.length){v.innerHTML='<div class="card empty">ما لقينا شي'+(ui.q?' لـ «'+esc(ui.q)+'»':'')+'</div>';return}
-  let h='';
-  ['trading','wallet','other'].forEach(k=>{const l=list.filter(a=>a.kind===k).sort((x,y)=>title(x).localeCompare(title(y)));if(!l.length)return;
-    h+='<section class="sec"><h2>'+KIND_PL[k]+' <span class="chip">'+l.length+'</span></h2><div class="card">'+l.map(row).join('')+'</div></section>'});
-  v.innerHTML=h;
+  if(!S.accounts.length){v.innerHTML='<div class="card empty"><strong>خزنتك فاضية</strong><div>زيد حساباتك: الشركة، الاسم، والباسورد.</div><button class="btn" data-act="new">زيد أول حساب</button></div>';return}
+  const list=S.accounts.filter(a=>matches(a,ui.q)).sort((x,y)=>(x.company||'').localeCompare(y.company||'')||nameOf(x).localeCompare(nameOf(y)));
+  v.innerHTML=list.length?'<section class="sec"><h2>حساباتي <span class="chip">'+list.length+'</span></h2><div class="card">'+list.map(row).join('')+'</div></section>':'<div class="card empty">ما لقينا شي لـ «'+esc(ui.q)+'»</div>';
 }
 function renderLock(){const c=$('#lockChip');c.hidden=!dek;c.className='lockchip open';c.textContent='🔒 قفّل'}
 
@@ -375,114 +361,46 @@ const head=t=>'<div class="sh-top"><h3>'+esc(t)+'</h3><button class="ib" type="b
 const A=id=>S.accounts.find(a=>a.id===id);
 const copyBtn=f=>'<button type="button" class="chip" data-act="copy" data-f="'+f+'">نسخ</button>';
 function detail(id){
-  const a=A(id);if(!a)return;
-  let h=head(KIND[a.kind]);
-  h+='<div class="hero-d"><span class="logo k-'+a.kind+'">'+firstChar(a)+'</span><div><div class="t">'+esc(title(a))+'</div><div class="note">'+esc([a.name?a.company:'',a.kind==='trading'?[a.platform,a.acctType].filter(Boolean).join(' · '):''].filter(Boolean).join(' · '))+'</div></div></div>';
-  const r=(k,v,f,mono)=>v?'<div class="dr"><span class="k">'+k+'</span><span class="v'+(mono?' mono':'')+'">'+esc(v)+'</span>'+(f?copyBtn(f):'')+'</div>':'';
+  const a=A(id);if(!a)return;const shown=ui.revealed[a.id];
+  let h=head(a.company||'حساب');
   h+='<div class="dl" data-id="'+esc(a.id)+'">';
-  if(a.kind==='trading')h+=r('السرفر',a.server,'server',true);
-  h+=r(a.kind==='trading'?'رقم الحساب':'اليوزر / الإيميل',a.login,'login',true);
-  if(a.password){
-    const shown=ui.revealed[a.id];
-    h+='<div class="dr"><span class="k">الباسورد</span><span class="v mono">'+(shown?esc(a.password):'••••••••')+'</span>'+copyBtn('password')+'<button type="button" class="chip" data-act="'+(shown?'hide':'reveal')+'">'+(shown?'خبّي':'اظهر')+'</button></div>';
-  }
-  if(a.kind==='wallet'){h+=r('الشبكة',a.network,'',false);h+=r('العنوان',a.address,'address',true)}
-  h+=r('العملة',a.currency?(a.currency+' · '+(CUR_AR[a.currency]||'')):'','',false);
-  h+=r('باسم مين',a.owner,'',false);
-  h+=r('ملاحظات',a.note,'',false);
-  h+='</div>';
-  const tm=a.terms||{},ib=a.ib||{};
-  if(a.kind==='trading'&&(tm.type||tm.spread||tm.commission||tm.leverage||ib.on)){
-    h+='<h2>الشروط والـ IB</h2><div class="dl" data-id="'+esc(a.id)+'">'+r('نوع الحساب',tm.type,'',false)+r('السبريد',tm.spread,'',false)+r('العمولة',tm.commission,'',false)+r('الرافعة',tm.leverage,'',false)+
-      '<div class="dr"><span class="k">تحت IB؟</span><span class="v">'+(ib.on?'إيه':'لا')+'</span></div>'+
-      (ib.on?r('اسم الـ IB',ib.name,'',false)+(ib.code?'<div class="dr"><span class="k">كود الـ IB</span><span class="v mono">'+esc(ib.code)+'</span><button type="button" class="chip" data-act="copyIb" data-f="code">نسخ</button></div>':'')+(ib.link?'<div class="dr"><span class="k">رابط الإحالة</span><span class="v mono">'+esc(ib.link)+'</span><button type="button" class="chip" data-act="copyIb" data-f="link">نسخ</button></div>':'')+r('الميزة',ib.perk,'',false):'')+'</div>'}
-  if(hasBot(a)){const b=a.bot;h+='<h2>🤖 البوت</h2><div class="dl" data-id="'+esc(a.id)+'">'+r('الاسم',b.name,'',false)+r('الحالة',b.status,'',false)+r('وين شغّال',b.where,'',false)+(b.host?'<div class="dr"><span class="k">السيرفر / VPS</span><span class="v mono">'+esc(b.host)+'</span><button type="button" class="chip" data-act="copyBot">نسخ</button></div>':'')+r('الأزواج',b.pairs,'',false)+r('الفريم',b.tf,'',false)+r('اللوت / المخاطرة',b.risk,'',false)+r('كيف شغلو',b.how,'',false)+'</div>'}
-  h+='<div class="acts"><button type="button" class="btn ghost" data-act="edit" data-id="'+esc(a.id)+'">تعديل</button></div>';
+  h+='<div class="dr"><span class="k">الشركة</span><span class="v">'+esc(a.company||'—')+'</span></div>';
+  if(nameOf(a))h+='<div class="dr"><span class="k">الاسم</span><span class="v mono">'+esc(nameOf(a))+'</span><button type="button" class="chip" data-act="copyName">نسخ</button></div>';
+  if(a.password)h+='<div class="dr"><span class="k">الباسورد</span><span class="v mono">'+(shown?esc(a.password):'••••••••')+'</span>'+copyBtn('password')+'<button type="button" class="chip" data-act="'+(shown?'hide':'reveal')+'">'+(shown?'خبّي':'اظهر')+'</button></div>';
+  h+='</div><div class="acts"><button type="button" class="btn ghost" data-act="edit" data-id="'+esc(a.id)+'">تعديل</button></div>';
   openSheet(h);
 }
 function form(id){
-  const a=id?clone(A(id)):{bot:ui.kind==='bot'?{on:true,status:'شغّال',where:'VPS'}:null,kind:(ui.kind==='all'||ui.kind==='bot')?'trading':ui.kind,company:'',platform:'MT5',acctType:'حقيقي',server:'',login:'',currency:'USD',owner:'',network:'TRC20',address:'',name:'',note:''};
-  const owners=[...new Set(S.accounts.map(x=>x.owner).filter(Boolean))];
-  let h=head(id?'تعديل الحساب':'حساب جديد');
-  const tm=a.terms||{},ib=a.ib||{};const b=a.bot||{};const botNames=[...new Set(S.accounts.map(x=>x.bot&&x.bot.name).filter(Boolean))];
-  h+='<form id="fAcc" data-kind="'+a.kind+'" data-bot="'+(b.on?'on':'off')+'" data-ib="'+(ib.on?'on':'off')+'" data-id="'+esc(id||'')+'">';
-  h+='<div class="seg" role="group">'+Object.keys(KIND).map(k=>'<button type="button" data-act="fkind" data-v="'+k+'" aria-pressed="'+(a.kind===k)+'">'+({trading:'تداول',wallet:'محفظة',other:'حساب تاني'})[k]+'</button>').join('')+'</div>';
-  if(!id&&HAS_CLAUDE)h+='<button type="button" class="shot" data-act="shot" id="shotBtn"><span class="ico">📷</span><span><b>عبّي من سكرين شوت</b><span class="note">نزّل صورة الإيميل أو الرسالة اللي فيها معلومات الحساب، وبتتعبّى الخانات لحالها</span></span></button>';
-  h+='<div class="grp"><label class="f" for="company">الشركة</label><div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="company" value="'+esc(a.company)+'" placeholder="دوّر أو اكتب اسم الشركة" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="picks" id="coPicks"></div></div>';
-  h+='<div class="grp t-only"><span class="note">المنصة</span><div class="picks" id="platPicks">'+picks(PLATS,a.platform,'plat')+'</div></div>';
-  h+='<div class="grp t-only"><span class="note">نوع الحساب</span><div class="picks" id="typePicks">'+picks(ATYPES,a.acctType,'atype')+'</div></div>';
-  h+='<div class="grp t-only"><label class="f">السرفر<input id="server" class="ltr" value="'+esc(a.server)+'" placeholder="مثلاً OneRoyal-Live" autocomplete="off"></label><div class="picks" id="srvPicks"></div></div>';
-  h+='<div class="t-only botbox grp" style="gap:12px"><b style="font-size:15px">شروط الحساب</b>'+
-    '<div class="grp"><span class="note">نوع الحساب عند الشركة</span><div class="picks" id="termType">'+picks(TERM_T,tm.type||'','pk')+'</div></div>'+
-    '<div class="row2"><label class="f">السبريد<input id="tSpread" value="'+esc(tm.spread||'')+'" placeholder="مثلاً من 0.0"></label><label class="f">العمولة<input id="tComm" value="'+esc(tm.commission||'')+'" placeholder="مثلاً $3 للوت"></label></div>'+
-    '<label class="f">الرافعة<input id="tLev" class="ltr" value="'+esc(tm.leverage||'')+'" placeholder="1:500"></label>'+
-    '<label class="chk"><input type="checkbox" id="ibOn"'+(ib.on?' checked':'')+'>الحساب تحت IB</label>'+
-    '<div class="i-only grp" style="gap:12px"><div class="row2"><label class="f">اسم الـ IB<input id="ibName" value="'+esc(ib.name||'')+'" placeholder="مين الـ IB"></label><label class="f">كود / رقم الـ IB<input id="ibCode" class="ltr" value="'+esc(ib.code||'')+'"></label></div>'+
-    '<label class="f">رابط الإحالة (اختياري)<input id="ibLink" class="ltr" value="'+esc(ib.link||'')+'" placeholder="https://"></label>'+
-    '<label class="f">شو الميزة اللي بياخدها الحساب<textarea id="ibPerk" placeholder="مثلاً: سبريد أقل على الذهب، عمولة $2 بدل $3.5، كاش باك $1 عن كل لوت">'+esc(ib.perk||'')+'</textarea></label></div></div>';
-  h+='<label class="f"><span class="t-only">رقم الحساب (Login)</span><span class="w-only">اليوزر / الإيميل / الـ ID</span><span class="o-only">اليوزر أو الإيميل</span><input id="login" class="ltr" value="'+esc(a.login)+'" autocomplete="off"></label>';
-  h+='<label class="f">الباسورد<div class="pw"><input id="pw" type="password" class="ltr" autocomplete="new-password" value="'+esc(a.password||'')+'"><button type="button" class="ib" data-act="pwToggle" aria-label="اظهر الباسورد">👁</button></div></label>';
-  h+='<div class="row2 w-only"><label class="f">الشبكة<select id="network">'+opts(NETS,a.network)+'</select></label><label class="f">العملة<select id="currency2">'+opts(CURS.map(c=>[c,c+' · '+CUR_AR[c]]),a.currency)+'</select></label></div>';
-  h+='<label class="f w-only">عنوان المحفظة (اختياري)<input id="address" class="ltr" value="'+esc(a.address)+'" autocomplete="off"></label>';
-  h+='<div class="w-only warn">لا تحط الكلمات السرية (Seed Phrase) هون ولا بأي محل أونلاين.</div>';
-  h+='<label class="f t-only">عملة الحساب<select id="currency">'+opts(CURS.map(c=>[c,c+' · '+CUR_AR[c]]),a.currency)+'</select></label>';
-  h+='<div class="t-only botbox grp"><label class="chk"><input type="checkbox" id="botOn"'+(b.on?' checked':'')+'>🤖 في بوت شغّال على هالحساب</label>'+
-    '<div class="b-only grp" style="gap:12px;margin-top:6px">'+
-    '<div class="grp"><label class="f">اسم البوت<input id="botName" value="'+esc(b.name||'')+'" placeholder="مثلاً Phoenix HAZ bot"></label>'+(botNames.length?'<div class="picks">'+botNames.map(n=>'<button type="button" class="pick" data-act="botname" data-v="'+esc(n)+'">'+esc(n)+'</button>').join('')+'</div>':'')+'</div>'+
-    '<div class="grp"><span class="note">الحالة</span><div class="picks" id="botStatus">'+picks(BOT_ST,b.status||'شغّال','pk')+'</div></div>'+
-    '<div class="grp"><span class="note">وين شغّال</span><div class="picks" id="botWhere">'+picks(BOT_WHERE,b.where||'VPS','pk')+'</div></div>'+
-    '<label class="f">السيرفر / الـ VPS (اختياري)<input id="botHost" class="ltr" value="'+esc(b.host||'')+'" placeholder="مثلاً Contabo 185.12.34.56"></label>'+
-    '<div class="row2"><label class="f">الأزواج<input id="botPairs" class="ltr" value="'+esc(b.pairs||'')+'" placeholder="XAUUSD"></label><label class="f">اللوت / المخاطرة<input id="botRisk" value="'+esc(b.risk||'')+'" placeholder="0.01 أو 1%"></label></div>'+
-    '<div class="grp"><span class="note">الفريم</span><div class="picks" id="botTf">'+picks(TFS,b.tf||'','pk')+'</div></div>'+
-    '<label class="f">كيف شغلو<textarea id="botHow" placeholder="مثلاً: بيفوت على كسر الهاي بسيشن لندن، ستوب 30 نقطة، هدف 1:2، بيوقف يوم الجمعة">'+esc(b.how||'')+'</textarea></label>'+
-    '</div></div>';
-  h+='<div class="grp"><label class="f">باسم مين الحساب<input id="owner" value="'+esc(a.owner)+'" placeholder="اسم صاحب الحساب" autocomplete="off"></label>'+(owners.length?'<div class="picks">'+owners.map(o=>'<button type="button" class="pick" data-act="owner" data-v="'+esc(o)+'">'+esc(o)+'</button>').join('')+'</div>':'')+'</div>';
-  h+='<label class="f">اسم مختصر (اختياري)<input id="name" value="'+esc(a.name)+'" placeholder="مثلاً حساب الذهب"></label>';
-  h+='<label class="f">ملاحظات<textarea id="note">'+esc(a.note)+'</textarea></label>';
+  const a=id?A(id):null;
+  let h=head(id?'تعديل الحساب':'حساب جديد')+'<form id="fAcc" data-id="'+esc(id||'')+'">';
+  if(!id&&HAS_CLAUDE)h+='<button type="button" class="shot" data-act="shot" id="shotBtn"><span class="ico">📷</span><span><b>عبّي من سكرين شوت</b><span class="note">نزّل صورة المعلومات وبتتعبّى الخانات لحالها</span></span></button>';
+  h+='<div class="grp"><label class="f" for="company">الشركة</label><div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="company" value="'+esc(a?a.company:'')+'" placeholder="دوّر أو اكتب اسم الشركة" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="picks" id="coPicks"></div></div>';
+  h+='<label class="f">الاسم أو رقم الحساب<input id="login" class="ltr" value="'+esc(a?nameOf(a):'')+'" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>';
+  h+='<label class="f">الباسورد<div class="pw"><input id="pw" type="password" class="ltr" autocomplete="new-password" value="'+esc(a&&a.password||'')+'"><button type="button" class="ib" data-act="pwToggle" aria-label="اظهر الباسورد">👁</button></div></label>';
   h+='<div class="acts"><button class="btn" type="submit">احفظ</button>'+(id?'<button type="button" class="btn danger" data-act="del">احذف</button>':'')+'</div></form>';
-  openSheet(h);renderCo();renderSrv();
+  openSheet(h);renderCo();
 }
-const curKind=()=>{const f=$('#fAcc');return f?f.dataset.kind:'trading'};
 function renderCo(){
-  const box=$('#coPicks');if(!box)return;const q=$('#company').value.trim(),k=curKind();
-  const l=[...new Set(CAT[k].concat(S.accounts.filter(a=>a.kind===k).map(a=>a.company).filter(Boolean)))];
+  const box=$('#coPicks');if(!box)return;const q=$('#company').value.trim();
+  const l=[...new Set(COMPANIES.concat(S.accounts.map(a=>a.company).filter(Boolean)))];
   const qn=norm(q);const lbq=/لبنان|لبناني|lebanon|leb/.test(qn);
   let m=lbq?l.filter(x=>LB.includes(x)):qn?l.filter(x=>norm(x).includes(qn)||(qn.length>=5&&norm(x).startsWith(qn.slice(0,4)))):l;
   const exact=l.some(x=>norm(x)===qn);m=m.slice(0,lbq?40:qn?16:10);
   box.innerHTML=m.map(v=>'<button type="button" class="pick" data-act="co" data-v="'+esc(v)+'" aria-pressed="'+(v===q)+'">'+esc(v)+(LB.includes(v)?'<small>🇱🇧</small>':'')+'</button>').join('')+
-    (!qn?'<button type="button" class="pick add" data-act="coLb">🇱🇧 الشركات اللبنانية</button><span class="note" style="align-self:center">في أكتر من 200 شركة، اكتب لتدوّر</span>':'')+
+    (!qn?'<button type="button" class="pick add" data-act="coLb">🇱🇧 الشركات اللبنانية</button>':'')+
     (q&&!exact&&!lbq?'<button type="button" class="pick add" data-act="co" data-v="'+esc(q)+'">+ استعمل «'+esc(q)+'»</button>':'');
 }
-function renderSrv(){
-  const box=$('#srvPicks');if(!box)return;const co=$('#company').value.trim();
-  if(!co){box.innerHTML='';return}
-  const used=S.accounts.filter(a=>a.company===co&&a.server).map(a=>a.server);
-  const slug=co.replace(/\s*\(.*\)/,'').replace(/[^A-Za-z0-9]/g,'');
-  const sug=[...new Set(used.concat(slug?[slug+'-Live',slug+'-Real',slug+'-Demo']:[]))];
-  box.innerHTML=picks(sug,$('#server').value,'srv')+'<span class="note" style="align-self:center">تأكد من اسم السرفر بالـ MetaTrader</span>';
-}
+function renderSrv(){}
 async function submit(f){
-  const id=f.dataset.id,kind=f.dataset.kind;const v=s=>{const e=$('#'+s);return e?e.value.trim():''};
-  const company=v('company');if(!company&&!v('name')){toast('اختار الشركة');$('#company').focus();return}
-  const pw=$('#pw').value;const old=id?A(id):null;
-  const sel=g=>{const b=f.querySelector('#'+g+' [aria-pressed="true"]');return b?b.dataset.v:''};
-  const a={id:id||rid(),kind:kind,company:company,name:v('name'),login:v('login'),owner:v('owner'),note:$('#note').value.trim(),created:(old&&old.created)||Date.now()};
-  if(kind==='trading'){a.platform=sel('platPicks');a.acctType=sel('typePicks');a.server=v('server');a.currency=v('currency');
-    a.terms={type:sel('termType'),spread:v('tSpread'),commission:v('tComm'),leverage:v('tLev')};
-    a.ib=$('#ibOn').checked?{on:true,name:v('ibName'),code:v('ibCode'),link:v('ibLink'),perk:$('#ibPerk').value.trim()}:null;
-    if($('#botOn').checked)a.bot={on:true,name:v('botName'),status:sel('botStatus'),where:sel('botWhere'),host:v('botHost'),pairs:v('botPairs'),tf:sel('botTf'),risk:v('botRisk'),how:$('#botHow').value.trim()}}
-  else if(kind==='wallet'){a.network=v('network');a.address=v('address');a.currency=v('currency2')}
-  a.password=pw;
-  if(id){const i=S.accounts.findIndex(x=>x.id===id);S.accounts[i]=a;delete ui.revealed[id]}else S.accounts.push(a);
+  const id=f.dataset.id;const company=$('#company').value.trim(),login=$('#login').value.trim(),pw=$('#pw').value;
+  if(!company){toast('اختار الشركة');$('#company').focus();return}
+  if(id){const a=A(id);a.company=company;a.login=login;delete a.name;a.password=pw;delete ui.revealed[id]}
+  else S.accounts.push({id:rid(),kind:'trading',company:company,login:login,password:pw,created:Date.now()});
   save();closeSheet();render();toast('انحفظ');
 }
 
 /* ---------- fill from screenshot (sent to Claude to read) ---------- */
-const SHOT_PROMPT='The attached image is a screenshot of account details sent to a trader: usually a broker welcome email or message (MetaTrader/cTrader login, password, server), or a crypto/payment wallet, or another service account such as TradingView. Text may be English or Arabic. Read ONLY what is visible and return one JSON object with exactly these string keys: '+
- '"kind" ("trading" for a broker/prop trading account, "wallet" for a crypto exchange, crypto wallet or payment wallet, "other" for any other service), "company" (broker or service name, e.g. "OneRoyal", "Exness", "Binance", "TradingView"), '+
- '"platform" (one of "MT4","MT5","cTrader","Web" or ""), "acctType" (Arabic: "حقيقي" for live/real, "تجريبي" for demo, "تحدي Prop" for a prop-firm challenge, or ""), "server" (exact server name), "login" (account number, username, email or ID), '+
- '"password" (the MAIN/master/trading password exactly as written, preserving every character and case), "currency" (one of USD, EUR, LBP, GBP, USDT, USDC, BTC, ETH, BNB, SOL, TRX, or ""), "owner" (account holder name if shown), "network" (for wallets: TRC20, ERC20, BEP20, Bitcoin, Solana, TON, Arbitrum, Polygon, Lightning, or ""), "address" (wallet address if shown), '+
- '"leverage" (e.g. "1:500" or ""), "spread" (spread info if stated, else ""), "commission" (commission info if stated, else ""), "ibCode" (IB / partner / referral code if shown, else ""), "note" (short Arabic note with other useful details, e.g. investor/read-only password, leverage, or that several accounts were in the image; "" if none). Use "" for anything not visible. Never guess or invent values.';
+const SHOT_PROMPT='The attached image is a screenshot of account details (usually a broker welcome email/message, or a wallet or service account). Text may be English or Arabic. Read ONLY what is visible and return one JSON object with exactly these string keys: "company" (broker or service name, e.g. "OneRoyal", "Exness", "Binance", "TradingView"), "login" (account number, username, email or ID), "password" (the main/master/trading password exactly as written, preserving every character and case). Use "" for anything not visible. Never guess or invent values.';
 async function fromShot(file){
   const btn=$('#shotBtn');
   let sample=null;try{sample=await claude.use('sample')}catch(e){}
@@ -490,30 +408,16 @@ async function fromShot(file){
   const lim=await sample.limits().catch(()=>null);
   if(!lim||!lim.images){toast('قراية الصور مش متاحة هون');return}
   if(btn){btn.setAttribute('aria-busy','true');btn.querySelector('b').textContent='عم يقرا الصورة…'}
-  try{
-    const r=await sample.json(SHOT_PROMPT,{images:[file],cache:false,modelTier:'default'});
-    fillForm(r||{});toast('تعبّت الخانات، راجعها قبل ما تحفظ');
-  }catch(e){
-    const c=e&&e.code;toast(c==='not_granted'?'لازم تسمح للصفحة تبعت الصورة لـ Claude':c==='rate_limited'?'استنى شوي وجرّب مرة تانية':c==='image_rejected'?'الصورة كبيرة أو نوعها مش مقبول':'ما قدر يقرا الصورة، جرّب صورة أوضح');
-  }finally{if(btn){btn.removeAttribute('aria-busy');btn.querySelector('b').textContent='عبّي من سكرين شوت'}}
+  try{const r=await sample.json(SHOT_PROMPT,{images:[file],cache:false,modelTier:'default'});fillForm(r||{});toast('تعبّت الخانات، راجعها قبل ما تحفظ')}
+  catch(e){const c=e&&e.code;toast(c==='not_granted'?'لازم تسمح للصفحة تبعت الصورة لـ Claude':c==='rate_limited'?'استنى شوي وجرّب مرة تانية':c==='image_rejected'?'الصورة كبيرة أو نوعها مش مقبول':'ما قدر يقرا الصورة، جرّب صورة أوضح')}
+  finally{if(btn){btn.removeAttribute('aria-busy');btn.querySelector('b').textContent='عبّي من سكرين شوت'}}
 }
 function fillForm(r){
-  const f=$('#fAcc');if(!f)return;const str=k=>typeof r[k]==='string'?r[k].trim():'';
-  const kind=['trading','wallet','other'].includes(r.kind)?r.kind:f.dataset.kind;
-  const kb=f.querySelector('[data-act="fkind"][data-v="'+kind+'"]');if(kb)kb.click();
-  let co=str('company');if(co){const hit=CAT[kind].find(x=>norm(x)===norm(co)||norm(x).startsWith(norm(co)));if(hit)co=hit}
-  const set=(id,v)=>{const e=$('#'+id);if(e&&v)e.value=v};
-  set('company',co);set('server',str('server'));set('login',str('login'));set('owner',str('owner'));set('address',str('address'));
-  const cur=str('currency').toUpperCase();if(CURS.includes(cur)){set('currency',cur);set('currency2',cur)}
-  if(NETS.includes(str('network')))set('network',str('network'));
-  const pick=(g,v)=>{const b=f.querySelector('#'+g+' [data-v="'+v+'"]');if(b)b.click()};
-  if(PLATS.includes(str('platform')))pick('platPicks',str('platform'));
-  if(ATYPES.includes(str('acctType')))pick('typePicks',str('acctType'));
-  set('tLev',str('leverage'));set('tSpread',str('spread'));set('tComm',str('commission'));
-  if(str('ibCode')){const c=$('#ibOn');if(c&&!c.checked)c.click();set('ibCode',str('ibCode'))}
-  if(str('note')){const n=$('#note');n.value=(n.value?n.value+'\n':'')+str('note')}
+  const str=k=>typeof r[k]==='string'?r[k].trim():'';
+  let co=str('company');if(co){const hit=COMPANIES.find(x=>norm(x)===norm(co)||norm(x).startsWith(norm(co)));if(hit)co=hit;$('#company').value=co}
+  if(str('login'))$('#login').value=str('login');
   if(str('password')){const p=$('#pw');p.value=str('password');p.type='text'}
-  renderCo();renderSrv();
+  renderCo();
 }
 
 /* ---------- settings ---------- */
@@ -576,8 +480,9 @@ document.addEventListener('click',async ev=>{
     case 'lkCopy':try{await navigator.clipboard.writeText(ui.showCode);toast('انسخ الكود')}catch(e){toast('علّم الكود وانسخو')}break;
     case 'lkDone':if(!$('#lkSaved').checked)return;ui.showCode=null;gate();render();break;
     case 'fkind':f.dataset.kind=b.dataset.v;b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderCo();break;
-    case 'co':$('#company').value=b.dataset.v;renderCo();renderSrv();break;
+    case 'co':$('#company').value=b.dataset.v;renderCo();break;
     case 'coLb':$('#company').value='لبنان';renderCo();$('#company').select();break;
+    case 'copyName':{const a=A(dlId());try{await navigator.clipboard.writeText(nameOf(a));toast('انسخ')}catch(e){toast('ما زبط النسخ')}break}
     case 'copyIb':{const a=A(dlId());try{await navigator.clipboard.writeText((a.ib||{})[b.dataset.f]||'');toast('انسخ')}catch(e){toast('ما زبط النسخ')}break}
     case 'botname':$('#botName').value=b.dataset.v;break;
     case 'copyBot':{const a=A(dlId());try{await navigator.clipboard.writeText(a.bot.host||'');toast('انسخ')}catch(e){toast('ما زبط النسخ')}break}
